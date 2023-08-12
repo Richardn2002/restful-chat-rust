@@ -126,6 +126,33 @@ paths:
           description: Not properly authorized to query the intended room.
         '500':
           description: Unexpected error.
+    post:
+      description: Sends a message.
+      parameters:
+        - name: uid
+          in: query
+          required: true
+          $ref: '#/components/schemas/U64'
+        - name: rid
+          in: query
+          description: ID of the destination room
+          required: true
+          $ref: '#/components/schemas/U64'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request or invalid message.
+        '401':
+          description: Not properly authorized to send on behalf of the user to the room.
+        '500':
+          description: Unexpected error.
   /updates/read:
     post:
       description: Marks that all messages have been read by user until (including) message in a room.
