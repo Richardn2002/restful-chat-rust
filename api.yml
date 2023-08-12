@@ -1,0 +1,41 @@
+openapi: '3.0.2'
+info:
+  title: RESTful Chat Server in Rust - API
+  version: '0.1'
+servers:
+  - url: http://localhost:3000/chat
+paths:
+  /rooms:
+    get:
+      description: Returns list of rooms
+      parameters:
+        - name: uid
+          in: query
+          description: ID of the owner of the list
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - name: pn
+          in: query
+          description: Page number, starting from 0, 10 per page, rooms sorted by activity
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+        '400':
+          description: Bad request.
+        '401':
+          description: Not properly authorized to query the intended user.
+        '500':
+          description: Unexpected error.
