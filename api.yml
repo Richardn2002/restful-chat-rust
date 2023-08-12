@@ -4,6 +4,52 @@ info:
   version: '0.1'
 servers:
   - url: http://localhost:3000/chat
+components:
+  schemas:
+    U64:
+      description: Used for any ID/timestamp
+      type: integer
+      minimum: 0
+    IDArray:
+      description: Array of IDs with 'has_more' marker
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/U64'
+        has_more:
+          type: boolean
+    Message:
+      description: A single message object
+      type: object
+      properties:
+        timestamp:
+          $ref: '#/components/schemas/U64'
+        msg_type:
+          type: string
+          enum: ['plain', 'image', 'location', 'poll']
+        reply_to:
+          description: ID of the message replying to
+          $ref: '#/components/schemas/U64'
+        pings:
+          description: Users pinged in this message
+          type: array
+          items:
+            $ref: '#/components/schemas/U64'
+        content:
+          description: Generic JSON object carrying message body
+          type: object
+    MessageArray:
+      description: Array of messages sorted in chronological order with marker
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        has_more:
+          type: boolean
 paths:
   /rooms:
     get:
@@ -13,29 +59,55 @@ paths:
           in: query
           description: ID of the owner of the list
           required: true
-          schema:
-            type: integer
-            minimum: 0
+          $ref: '#/components/schemas/U64'
         - name: pn
           in: query
           description: Page number, starting from 0, 10 per page, rooms sorted by activity
           required: false
-          schema:
-            type: integer
-            minimum: 0
+          $ref: '#/components/schemas/U64'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    type: array
+                $ref: '#/components/schemas/IDArray'
         '400':
           description: Bad request.
         '401':
           description: Not properly authorized to query the intended user.
+        '500':
+          description: Unexpected error.
+  /messages:
+    get:
+      description: Returns list of messages. Length from 0 to 10.
+      parameters:
+        - name: rid
+          in: query
+          description: ID of the room containing the messages
+          required: true
+          $ref: '#/components/schemas/U64'
+        - name: mid
+          in: query
+          description: ID of the message that is the reference head. If none, return latest 10 messages.
+          required: false
+          $ref: '#/components/schemas/U64'
+        - name: into_past
+          in: query
+          description: True if the reference head is the newest in the returned list
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageArray'
+        '400':
+          description: Bad request.
+        '401':
+          description: Not properly authorized to query the intended room.
         '500':
           description: Unexpected error.
