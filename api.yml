@@ -7,7 +7,7 @@ servers:
 components:
   schemas:
     U64:
-      description: Used for any ID/timestamp
+      description: Used for any ID/timestamp/counts
       type: integer
       minimum: 0
     IDArray:
@@ -50,6 +50,21 @@ components:
             $ref: '#/components/schemas/Message'
         has_more:
           type: boolean
+    UnreadRoomsArray:
+      description: Array of rooms sorted by activity, each entry with rid, unread counts and message preview.
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              rid:
+                $ref: '#/components/schemas/U64'
+              unread_count:
+                $ref: '#/components/schemas/U64'
+              preview:
+                $ref: '#/components/schemas/Message'
 paths:
   /rooms:
     get:
@@ -109,5 +124,56 @@ paths:
           description: Bad request.
         '401':
           description: Not properly authorized to query the intended room.
+        '500':
+          description: Unexpected error.
+  /updates/read:
+    post:
+      description: Marks that all messages have been read by user until (including) message in a room.
+      parameters:
+        - name: uid
+          in: query
+          required: true
+          $ref: '#/components/schemas/U64'
+        - name: rid
+          in: query
+          required: true
+          $ref: '#/components/schemas/U64'
+        - name: mid
+          in: query
+          required: true
+          $ref: '#/components/schemas/U64'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request.
+        '401':
+          description: Not properly authorized for the intended room or user.
+        '500':
+          description: Unexpected error.
+  /updates/unread:
+    get:
+      description: Returns list of rooms with unread messages. Length from 0 to 10.
+      parameters:
+        - name: uid
+          in: query
+          required: true
+          $ref: '#/components/schemas/U64'
+        - name: pn
+          in: query
+          description: Page number, starting from 0, 10 per page, rooms sorted by activity
+          required: false
+          $ref: '#/components/schemas/U64'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadRoomsArray'
+        '400':
+          description: Bad request.
+        '401':
+          description: Not properly authorized to query for the intended user.
         '500':
           description: Unexpected error.
