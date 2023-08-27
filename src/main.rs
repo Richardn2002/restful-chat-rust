@@ -1,4 +1,4 @@
-use poem::{listener::TcpListener, Route};
+use poem::{listener::TcpListener, Route, middleware::Cors, http::Method, EndpointExt};
 use poem_openapi::{param::Query, payload::Json, OpenApi, OpenApiService, ApiResponse, Object};
 
 type UserId = u64;
@@ -37,12 +37,12 @@ impl Api {
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let api_service =
-        OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1").server("http://localhost:3000");
-    // let ui = api_service.swagger_ui();
-    // let cors =
-    // Cors::new()
-    //     .allow_methods([Method::POST, Method::GET, Method::OPTIONS]);
-    let app = Route::new().nest("/chat", api_service);
+        OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1").server("http://localhost:3000/chat");
+    let ui = api_service.swagger_ui();
+    let cors =
+    Cors::new()
+        .allow_methods([Method::POST, Method::GET, Method::OPTIONS]);
+    let app = Route::new().nest("/chat", api_service).nest("/", ui).with(cors);
 
     poem::Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)
