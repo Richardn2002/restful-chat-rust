@@ -70,11 +70,6 @@ paths:
     get:
       description: Returns list of rooms
       parameters:
-        - name: uid
-          in: query
-          description: ID of the owner of the list
-          required: true
-          $ref: '#/components/schemas/U64'
         - name: pn
           in: query
           description: Page number, starting from 0, 10 per page, rooms sorted by activity
@@ -129,10 +124,6 @@ paths:
     post:
       description: Sends a message.
       parameters:
-        - name: uid
-          in: query
-          required: true
-          $ref: '#/components/schemas/U64'
         - name: rid
           in: query
           description: ID of the destination room
@@ -157,10 +148,6 @@ paths:
     post:
       description: Marks that all messages have been read by user until (including) message in a room.
       parameters:
-        - name: uid
-          in: query
-          required: true
-          $ref: '#/components/schemas/U64'
         - name: rid
           in: query
           required: true
@@ -182,10 +169,6 @@ paths:
     get:
       description: Returns list of rooms with unread messages. Length from 0 to 10.
       parameters:
-        - name: uid
-          in: query
-          required: true
-          $ref: '#/components/schemas/U64'
         - name: pn
           in: query
           description: Page number, starting from 0, 10 per page, rooms sorted by activity

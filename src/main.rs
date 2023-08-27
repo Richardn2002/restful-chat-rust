@@ -26,11 +26,8 @@ struct Api;
 #[OpenApi]
 impl Api {
     #[oai(path = "/rooms", method = "get")]
-    async fn index(&self, uid: Query<Option<UserId>>, _pn: Query<Option<u32>>) -> GetRoomsResponse {
-        match uid.0 {
-            Some(uid) => GetRoomsResponse::Ok(Json(RoomList { data: vec![1,2,uid] })),
-            None => GetRoomsResponse::Invalid,
-        }
+    async fn index(&self, _pn: Query<Option<u32>>) -> GetRoomsResponse {
+        GetRoomsResponse::Ok(Json(RoomList { data: vec![_pn.unwrap_or(0) as u64,1,2] }))
     }
 }
 
