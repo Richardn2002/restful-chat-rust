@@ -32,7 +32,7 @@ struct JWTPayload {
     key_in = "header",
     checker = "api_key_checker"
 )]
-struct ApiAuthN(JWTPayload);
+struct ApiKeyAuthN(JWTPayload);
 
 async fn api_key_checker(req: &Request, api_key: ApiKey) -> Option<JWTPayload> {
     let hmac_factory = req.data::<Hmac<Sha256>>().unwrap();
@@ -108,7 +108,7 @@ impl Api {
     }
 
     #[oai(path = "/rooms", method = "get")]
-    async fn rooms(&self, auth: ApiAuthN, pn: Query<Option<u32>>) -> GetRoomsResponse {
+    async fn rooms(&self, auth: ApiKeyAuthN, pn: Query<Option<u32>>) -> GetRoomsResponse {
         let pn = pn.unwrap_or(0) as u64;
         let uid = auth.0.sub;
         GetRoomsResponse::Ok(Json(RoomList {

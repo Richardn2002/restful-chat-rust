@@ -5,6 +5,11 @@ info:
 servers:
   - url: http://localhost:3000/chat
 components:
+  securitySchemes:
+    ApiKeyAuthN:
+      type: apiKey
+      in: header
+      name: X-API-KEY
   schemas:
     Credentials:
       type: object
@@ -104,6 +109,8 @@ paths:
           description: Unexpected error.
     get:
       description: Returns list of rooms
+      security:
+        - ApiKeyAuthN: []
       parameters:
         - name: pn
           in: query
@@ -126,6 +133,8 @@ paths:
   /messages:
     get:
       description: Returns list of messages. Length from 0 to 10.
+      security:
+        - ApiKeyAuthN: []
       parameters:
         - name: rid
           in: query
@@ -158,6 +167,8 @@ paths:
           description: Unexpected error.
     post:
       description: Sends a message.
+      security:
+        - ApiKeyAuthN: []
       parameters:
         - name: rid
           in: query
@@ -182,6 +193,8 @@ paths:
   /updates/read:
     post:
       description: Marks that all messages have been read by user until (including) message in a room.
+      security:
+        - ApiKeyAuthN: []
       parameters:
         - name: rid
           in: query
@@ -203,6 +216,8 @@ paths:
   /updates/unread:
     get:
       description: Returns list of rooms with unread messages. Length from 0 to 10.
+      security:
+        - ApiKeyAuthN: []
       parameters:
         - name: pn
           in: query
