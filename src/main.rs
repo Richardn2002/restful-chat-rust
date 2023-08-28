@@ -65,7 +65,7 @@ enum LoginResponse {
 
 #[derive(Object)]
 struct RoomList {
-    data: Vec<RoomId>
+    data: Vec<RoomId>,
 }
 
 #[derive(ApiResponse)]
@@ -119,8 +119,8 @@ impl Api {
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let api_service =
-        OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1").server("http://localhost:3000/chat");
+    let api_service = OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1")
+        .server("http://localhost:3000/chat");
     let ui = api_service.swagger_ui();
 
     let cors = Cors::new().allow_methods([Method::POST, Method::GET, Method::OPTIONS]);

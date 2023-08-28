@@ -1,7 +1,7 @@
-openapi: '3.0.2'
+openapi: "3.0.2"
 info:
   title: RESTful Chat Server in Rust - API
-  version: '0.1'
+  version: "0.1"
 servers:
   - url: http://localhost:3000/chat
 components:
@@ -24,7 +24,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/U64'
+            $ref: "#/components/schemas/U64"
         has_more:
           type: boolean
     Message:
@@ -32,18 +32,21 @@ components:
       type: object
       properties:
         timestamp:
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
         msg_type:
           type: string
-          enum: ['plain', 'image', 'location', 'poll']
+          enum: ["plain", "image", "location", "poll"]
+        sender:
+          description: uid of the sender
+          $ref: "#/components/schemas/U64"
         reply_to:
           description: ID of the message replying to
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
         pings:
           description: Users pinged in this message
           type: array
           items:
-            $ref: '#/components/schemas/U64'
+            $ref: "#/components/schemas/U64"
         content:
           description: Generic JSON object carrying message body
           type: object
@@ -54,7 +57,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/Message'
+            $ref: "#/components/schemas/Message"
         has_more:
           type: boolean
     UnreadRoomsArray:
@@ -67,11 +70,11 @@ components:
             type: object
             properties:
               rid:
-                $ref: '#/components/schemas/U64'
+                $ref: "#/components/schemas/U64"
               unread_count:
-                $ref: '#/components/schemas/U64'
+                $ref: "#/components/schemas/U64"
               preview:
-                $ref: '#/components/schemas/Message'
+                $ref: "#/components/schemas/Message"
 paths:
   /login:
     post:
@@ -106,19 +109,19 @@ paths:
           in: query
           description: Page number, starting from 0, 10 per page, rooms sorted by activity
           required: false
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IDArray'
-        '400':
+                $ref: "#/components/schemas/IDArray"
+        "400":
           description: Bad request.
-        '401':
+        "401":
           description: Not properly authorized to query the intended user.
-        '500':
+        "500":
           description: Unexpected error.
   /messages:
     get:
@@ -128,12 +131,12 @@ paths:
           in: query
           description: ID of the room containing the messages
           required: true
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
         - name: mid
           in: query
           description: ID of the message that is the reference head. If none, return latest 10 messages.
           required: false
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
         - name: into_past
           in: query
           description: True if the reference head is the newest in the returned list
@@ -141,17 +144,17 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageArray'
-        '400':
+                $ref: "#/components/schemas/MessageArray"
+        "400":
           description: Bad request.
-        '401':
+        "401":
           description: Not properly authorized to query the intended room.
-        '500':
+        "500":
           description: Unexpected error.
     post:
       description: Sends a message.
@@ -160,21 +163,21 @@ paths:
           in: query
           description: ID of the destination room
           required: true
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Message'
+              $ref: "#/components/schemas/Message"
       responses:
-        '200':
+        "200":
           description: OK
-        '400':
+        "400":
           description: Bad request or invalid message.
-        '401':
+        "401":
           description: Not properly authorized to send on behalf of the user to the room.
-        '500':
+        "500":
           description: Unexpected error.
   /updates/read:
     post:
@@ -183,19 +186,19 @@ paths:
         - name: rid
           in: query
           required: true
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
         - name: mid
           in: query
           required: true
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
       responses:
-        '200':
+        "200":
           description: OK
-        '400':
+        "400":
           description: Bad request.
-        '401':
+        "401":
           description: Not properly authorized for the intended room or user.
-        '500':
+        "500":
           description: Unexpected error.
   /updates/unread:
     get:
@@ -205,17 +208,17 @@ paths:
           in: query
           description: Page number, starting from 0, 10 per page, rooms sorted by activity
           required: false
-          $ref: '#/components/schemas/U64'
+          $ref: "#/components/schemas/U64"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnreadRoomsArray'
-        '400':
+                $ref: "#/components/schemas/UnreadRoomsArray"
+        "400":
           description: Bad request.
-        '401':
+        "401":
           description: Not properly authorized to query for the intended user.
-        '500':
+        "500":
           description: Unexpected error.
