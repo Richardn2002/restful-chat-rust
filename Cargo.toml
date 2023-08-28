@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bson = "2.6.1"
+bson = { version = "2.6.1", features = ["time-0_3"] }
 hmac = "0.12.1"
 jwt = "0.16.0"
 poem = "1"
 poem-openapi = { version = "3", features = ["swagger-ui"] }
 serde = "1.0.188"
 sha2 = "0.10.7"
+time = "0.3.28"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

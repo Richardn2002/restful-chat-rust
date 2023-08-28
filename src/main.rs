@@ -5,6 +5,7 @@ use poem_openapi::{param::Query, payload::Json, ApiResponse, Object, OpenApi, Op
 use poem::{http::Method, middleware::Cors, EndpointExt};
 
 use bson::DateTime;
+use time::Duration;
 
 use hmac::{Hmac, Mac};
 use jwt::{SignWithKey, VerifyWithKey};
@@ -17,6 +18,7 @@ type UserId = u64;
 type RoomId = u64;
 
 const SERVER_KEY: &[u8] = b"secret";
+const JWT_LIFESPAN: Duration = Duration::minutes(15);
 
 #[derive(Serialize, Deserialize)]
 struct JWTPayload {
@@ -75,8 +77,8 @@ enum GetRoomsResponse {
     // handled by poem
     // #[oai(status = 400)]
     // Invalid,
-    // #[oai(status = 401)]
-    // Unauthorized,
+    #[oai(status = 401)]
+    Unauthorized,
     #[oai(status = 500)]
     Error,
 }
@@ -92,9 +94,11 @@ impl Api {
         req: Json<LoginRequest>,
     ) -> LoginResponse {
         if req.0.username == "admin" && req.0.password == "password" {
+            let exp_time = DateTime::now().to_time_0_3() + JWT_LIFESPAN;
+
             let try_sign = JWTPayload {
                 sub: 0,
-                exp: DateTime::now(),
+                exp: DateTime::from_time_0_3(exp_time),
             }
             .sign_with_key(hmac_factory.0);
 
@@ -109,6 +113,10 @@ impl Api {
 
     #[oai(path = "/rooms", method = "get")]
     async fn rooms(&self, auth: ApiKeyAuthN, pn: Query<Option<u32>>) -> GetRoomsResponse {
+        if auth.0.exp < DateTime::now() {
+            return GetRoomsResponse::Unauthorized;
+        }
+
         let pn = pn.unwrap_or(0) as u64;
         let uid = auth.0.sub;
         GetRoomsResponse::Ok(Json(RoomList {
