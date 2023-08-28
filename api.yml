@@ -6,6 +6,13 @@ servers:
   - url: http://localhost:3000/chat
 components:
   schemas:
+    Credentials:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
     U64:
       description: Used for any ID/timestamp/counts
       type: integer
@@ -66,7 +73,32 @@ components:
               preview:
                 $ref: '#/components/schemas/Message'
 paths:
-  /rooms:
+  /login:
+    post:
+      description: Provides credentials and receive JWT if valid.
+      requestBody:
+        description: Credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key:
+                    type: string
+        "400":
+          description: Bad request.
+        "401":
+          description: Credentials invalid.
+        "500":
+          description: Unexpected error.
     get:
       description: Returns list of rooms
       parameters:
