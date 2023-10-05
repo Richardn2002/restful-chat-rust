@@ -7,8 +7,11 @@ edition = "2021"
 
 [dependencies]
 bson = { version = "2.6.1", features = ["time-0_3"] }
+dotenv = "0.15.0"
 hmac = "0.12.1"
 jwt = "0.16.0"
+lazy_static = "1.4.0"
+mongodb = "2.6.1"
 poem = "1"
 poem-openapi = { version = "3", features = ["swagger-ui"] }
 serde = "1.0.188"
