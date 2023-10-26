@@ -1,71 +1,81 @@
-use crate::types::*;
+use crate::jwt::gen_token;
+use crate::types::UserId;
 
-use std::env;
+use bcrypt::verify;
 
-use hmac::{Hmac, Mac};
-use jwt::{SignWithKey, VerifyWithKey};
-use serde::{Deserialize, Serialize};
-use sha2::Sha256;
+use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 
-use time::Duration;
-
-use poem::Request;
-use poem_openapi::{auth::ApiKey, SecurityScheme};
-
-lazy_static! {
-    static ref HMAC_SIGNER: Hmac<Sha256> = {
-        // .env already loaded in main()
-        let server_key = env::var("SERVER_KEY").expect("SERVER_KEY not found in .env file.");
-        Hmac::<Sha256>::new_from_slice(server_key.as_bytes()).expect("valid server key required")
-    };
+enum LoginResult {
+    Pass(UserId),
+    UserNotFound,
+    IncorrectPassword,
+    BcryptError,
 }
 
-const JWT_LIFESPAN: Duration = Duration::minutes(15);
-
-#[derive(Serialize, Deserialize)]
-struct JWTPayload {
-    // RFC 7519
-    sub: UserId,
-    exp: Timestamp,
+#[derive(Object)]
+struct LoginRequest {
+    username: String,
+    password: String,
 }
 
-#[derive(SecurityScheme)]
-#[oai(
-    ty = "api_key",
-    key_name = "X-API-Key",
-    key_in = "header",
-    checker = "api_key_checker"
-)]
-pub struct ApiKeyAuthN(JWTPayload);
-
-async fn api_key_checker(req: &Request, api_key: ApiKey) -> Option<JWTPayload> {
-    let hmac_factory = req.data::<Hmac<Sha256>>().unwrap();
-    VerifyWithKey::<JWTPayload>::verify_with_key(api_key.key.as_str(), hmac_factory).ok()
+#[derive(Object)]
+struct LoginResponseBody {
+    api_key: String,
 }
 
-pub fn gen_token(uid: UserId) -> String {
-    let exp_time = Timestamp::now().to_time_0_3() + JWT_LIFESPAN;
+#[derive(ApiResponse)]
+enum LoginResponse {
+    #[oai(status = 200)]
+    Ok(Json<LoginResponseBody>),
+    // handled by poem
+    // #[oai(status = 400)]
+    // Invalid,
+    #[oai(status = 401)]
+    Unauthorized,
+    #[oai(status = 500)]
+    Error,
+}
 
-    JWTPayload {
-        sub: uid,
-        exp: Timestamp::from_time_0_3(exp_time),
+pub struct Auth;
+
+#[OpenApi]
+impl Auth {
+    #[oai(path = "/login", method = "post")]
+    async fn login(&self, req: Json<LoginRequest>) -> LoginResponse {
+        match check(&req.0.username, &req.0.password).await {
+            LoginResult::Pass(uid) => {
+                let api_key = gen_token(uid);
+
+                LoginResponse::Ok(Json(LoginResponseBody { api_key }))
+            }
+            LoginResult::BcryptError => LoginResponse::Error,
+            _ => LoginResponse::Unauthorized,
+        }
     }
-    .sign_with_key(&(*HMAC_SIGNER))
-    .ok()
-    .unwrap()
 }
 
-// poem handles signature mismatch/badly formed token with 401
-// this function takes a poem wrapper of a well formed and checked JWT object
-// then performs user-defined checks, returns true on passing
-pub fn check_token(auth: &ApiKeyAuthN) -> bool {
-    let jwt = &auth.0;
+async fn check(username: &String, password: &String) -> LoginResult {
+    // dumb database
+    let (hash, uid) = {
+        if username == "admin" {
+            // the password is "password"
+            (
+                "$2a$12$f7h31gSiD0e22vCLJss6ROst5kTYD3G0MIzyzpO9ef.FQ8W4Px3ee",
+                0,
+            )
+        } else {
+            return LoginResult::UserNotFound;
+        }
+    };
 
-    Timestamp::now() < jwt.exp
-}
-
-pub fn uid_from_token(auth: &ApiKeyAuthN) -> UserId {
-    let jwt = &auth.0;
-
-    jwt.sub
+    match verify(password, hash) {
+        Ok(correct) => {
+            if correct {
+                LoginResult::Pass(uid)
+            } else {
+                LoginResult::IncorrectPassword
+            }
+        }
+        Err(_) => LoginResult::BcryptError,
+    }
 }
