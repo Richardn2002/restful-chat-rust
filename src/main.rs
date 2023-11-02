@@ -1,8 +1,10 @@
-pub mod auth;
-pub mod jwt;
-pub mod types;
+mod auth;
+mod db;
+mod jwt;
+mod types;
 
 use crate::auth::Auth;
+use crate::db::Db;
 use crate::jwt::{check_token, init_jwt, uid_from_token, ApiKeyAuthN};
 use crate::types::*;
 
@@ -52,12 +54,32 @@ impl Api {
     }
 }
 
+fn get_from_env(key: &str) -> String {
+    env::var(key).unwrap_or_else(|_| panic!("{key} not found in .env file."))
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
-    let mongodb_uri = env::var("MONGODB_URI").expect("MONGODB_URI not found in .env file.");
-    let server_key = env::var("SERVER_KEY").expect("SERVER_KEY not found in .env file.");
+
+    let server_key = get_from_env("SERVER_KEY");
     init_jwt(server_key);
+
+    let mongodb_uri = get_from_env("MONGODB_URI");
+    let auth_db_name = get_from_env("AUTH_DB_NAME");
+    let creds_coll_name = get_from_env("CREDS_COLL_NAME");
+    let db = Db::new(mongodb_uri)
+        .await?
+        .init_auth(auth_db_name, creds_coll_name)
+        .await?;
+
+    // db.insert_creds(
+    //     "admin",
+    //     "$2a$12$f7h31gSiD0e22vCLJss6ROst5kTYD3G0MIzyzpO9ef.FQ8W4Px3ee",
+    //     0,
+    // )
+    // .await
+    // .map_err(Box::new)?;
 
     let api_service = OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1")
         .server("http://localhost:3000/chat");
@@ -74,6 +96,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nest("/chat/ui", ui)
         .nest("/auth", auth_service)
         .nest("/auth/ui", auth_ui)
+        .data(db)
         .with(cors);
 
     Ok(poem::Server::new(TcpListener::bind("127.0.0.1:3000"))

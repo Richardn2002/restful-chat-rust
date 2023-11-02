@@ -1,14 +1,17 @@
+use crate::db::Db;
 use crate::jwt::gen_token;
 use crate::types::UserId;
 
 use bcrypt::verify;
 
+use poem::web::Data;
 use poem_openapi::{payload::Json, ApiResponse, Object, OpenApi};
 
 enum LoginResult {
     Pass(UserId),
     UserNotFound,
     IncorrectPassword,
+    MongoDbError,
     BcryptError,
 }
 
@@ -41,34 +44,30 @@ pub struct Auth;
 #[OpenApi]
 impl Auth {
     #[oai(path = "/login", method = "post")]
-    async fn login(&self, req: Json<LoginRequest>) -> LoginResponse {
-        match check(&req.0.username, &req.0.password).await {
+    async fn login(&self, req: Json<LoginRequest>, db: Data<&Db>) -> LoginResponse {
+        match check(db.0, &req.0.username, &req.0.password).await {
             LoginResult::Pass(uid) => {
                 let api_key = gen_token(uid);
 
                 LoginResponse::Ok(Json(LoginResponseBody { api_key }))
             }
+            LoginResult::MongoDbError => LoginResponse::Error,
             LoginResult::BcryptError => LoginResponse::Error,
             _ => LoginResponse::Unauthorized,
         }
     }
 }
 
-async fn check(username: &String, password: &String) -> LoginResult {
-    // dumb database
-    let (hash, uid) = {
-        if username == "admin" {
-            // the password is "password"
-            (
-                "$2a$12$f7h31gSiD0e22vCLJss6ROst5kTYD3G0MIzyzpO9ef.FQ8W4Px3ee",
-                0,
-            )
-        } else {
-            return LoginResult::UserNotFound;
-        }
+async fn check(db: &Db, username: &str, password: &str) -> LoginResult {
+    let (hash, uid) = match db.query_creds(username).await {
+        Ok(opt) => match opt {
+            Some(pair) => pair,
+            None => return LoginResult::UserNotFound,
+        },
+        Err(_) => return LoginResult::MongoDbError,
     };
 
-    match verify(password, hash) {
+    match verify(password, &hash) {
         Ok(correct) => {
             if correct {
                 LoginResult::Pass(uid)
