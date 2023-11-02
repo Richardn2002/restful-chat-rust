@@ -1,12 +1,13 @@
 mod auth;
+mod chat;
 mod db;
 mod jwt;
 mod types;
 
 use crate::auth::Auth;
+use crate::chat::Chat;
 use crate::db::Db;
-use crate::jwt::{check_token, init_jwt, uid_from_token, ApiKeyAuthN};
-use crate::types::*;
+use crate::jwt::init_jwt;
 
 use dotenv::dotenv;
 use std::env;
@@ -14,45 +15,9 @@ use std::env;
 use std::error::Error;
 
 use poem::{listener::TcpListener, Route};
-use poem_openapi::{param::Query, payload::Json, ApiResponse, Object, OpenApi, OpenApiService};
+use poem_openapi::OpenApiService;
 
 use poem::{http::Method, middleware::Cors, EndpointExt};
-
-#[derive(Object)]
-struct RoomList {
-    data: Vec<RoomId>,
-}
-
-#[derive(ApiResponse)]
-enum GetRoomsResponse {
-    #[oai(status = 200)]
-    Ok(Json<RoomList>),
-    // handled by poem
-    // #[oai(status = 400)]
-    // Invalid,
-    #[oai(status = 401)]
-    Unauthorized,
-    #[oai(status = 500)]
-    Error,
-}
-
-struct Api;
-
-#[OpenApi]
-impl Api {
-    #[oai(path = "/rooms", method = "get")]
-    async fn rooms(&self, auth: ApiKeyAuthN, pn: Query<Option<u32>>) -> GetRoomsResponse {
-        if !check_token(&auth) {
-            return GetRoomsResponse::Unauthorized;
-        }
-
-        let uid = uid_from_token(&auth);
-        let pn = pn.unwrap_or(0) as u64;
-        GetRoomsResponse::Ok(Json(RoomList {
-            data: vec![pn, uid, 2],
-        }))
-    }
-}
 
 fn get_from_env(key: &str) -> String {
     env::var(key).unwrap_or_else(|_| panic!("{key} not found in .env file."))
@@ -81,12 +46,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // .await
     // .map_err(Box::new)?;
 
-    let api_service = OpenApiService::new(Api, "RESTful Chat Server in Rust", "0.1")
-        .server("http://localhost:3000/chat");
+    let api_service =
+        OpenApiService::new(Chat, "RESTful Chat Server in Rust - Chat subservice", "0.1")
+            .server("http://localhost:3000/chat");
     let ui = api_service.swagger_ui();
 
-    let auth_service = OpenApiService::new(Auth, "RESTful Chat Server in Rust", "0.1")
-        .server("http://localhost:3000/auth");
+    let auth_service =
+        OpenApiService::new(Auth, "RESTful Chat Server in Rust - Auth subservice", "0.1")
+            .server("http://localhost:3000/auth");
     let auth_ui = auth_service.swagger_ui();
 
     let cors = Cors::new().allow_methods([Method::POST, Method::GET, Method::OPTIONS]);
